@@ -1,0 +1,55 @@
+[project]
+name = "yamlsorter"
+version = "0.1.0"
+description = "Reorder keys in Kubernetes and Flux manifests to match per-type templates"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Antoine Bertin", email = "ant.bertin@gmail.com" }]
+keywords = ["yaml", "kubernetes", "flux", "gitops", "formatter", "pre-commit"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: System :: Systems Administration",
+  "Typing :: Typed",
+]
+dependencies = ["ruamel.yaml>=0.18"]
+
+[project.urls]
+Homepage = "https://github.com/Diaoul/yamlsorter"
+Source = "https://github.com/Diaoul/yamlsorter"
+Issues = "https://github.com/Diaoul/yamlsorter/issues"
+
+[project.scripts]
+yamlsorter = "yamlsorter:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/yamlsorter"]
+
+[dependency-groups]
+dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
