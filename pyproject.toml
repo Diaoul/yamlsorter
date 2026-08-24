@@ -26,7 +26,7 @@ Source = "https://github.com/Diaoul/yamlsorter"
 Issues = "https://github.com/Diaoul/yamlsorter/issues"
 
 [project.scripts]
-yamlsorter = "yamlsorter:main"
+yamlsorter = "yamlsorter.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -36,20 +36,35 @@ build-backend = "hatchling.build"
 packages = ["src/yamlsorter"]
 
 [dependency-groups]
-dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]
+dev = ["pytest>=8", "pytest-cov>=5", "mypy>=1.11", "ruff>=0.6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]
+addopts = "--strict-markers --strict-config"
 
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D", "ANN", "PTH", "C4", "TID"]
+ignore = ["D105", "D107", "D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 files = ["src", "tests"]
+
+[tool.coverage.run]
+source = ["yamlsorter"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]

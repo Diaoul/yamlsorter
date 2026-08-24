@@ -1,0 +1,7 @@
+- id: yamlsorter
+  name: yamlsorter
+  description: Reorder keys in Kubernetes and Flux manifests to match per-type templates
+  entry: yamlsorter
+  language: python
+  types: [yaml]
+  files: (^|/)(helmrelease|kustomization|ks)\.yaml$
