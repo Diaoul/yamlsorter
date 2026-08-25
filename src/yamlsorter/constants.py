@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from typing import Final
 
-#: Placeholder type on a result for a file no template applied to.
-GENERIC: Final = "generic"
-
 #: Template key standing in for whatever name the manifest uses at that level.
 WILDCARD: Final = "*"
 

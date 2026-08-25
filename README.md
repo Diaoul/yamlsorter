@@ -8,8 +8,9 @@ Reorder keys in Kubernetes and Flux manifests so diffs stay readable. Key order 
 no meaning to Kubernetes, so it is free to standardise — and worth standardising,
 because an unordered `spec` makes every review hunt for the field it cares about.
 
-The desired order is declared by example: each template is a manifest skeleton whose
-**keys** define the order for its type. Values there are placeholders and are ignored.
+The desired order is declared by example: a template is a manifest whose **keys**
+define the order for its type — a skeleton kept in a config directory, or an ordinary
+manifest already in the repo. Values are ignored either way.
 
 ## Install
 
@@ -37,8 +38,8 @@ yamlsorter kubernetes --template kubernetes/apps/default/vaultwarden/app/helmrel
 
 Walking a directory picks up `helmrelease.yaml`, `kustomization.yaml` and `ks.yaml`
 (`--names` overrides). A file named explicitly is processed whatever it is called.
-Anything the templates do not cover — Secrets, HTTPRoutes, OCIRepositories — is
-skipped, not an error.
+A document whose type has no template — a Secret, an OCIRepository — is skipped, not
+an error.
 
 A rewrite never loses what a manifest carries: comments, anchors, `<<` merge keys,
 quoting, line endings and file permissions all survive. Keys inherited through a merge
@@ -104,19 +105,18 @@ A working set for a Flux repo is in [`examples/templates/`](examples/templates).
 ```yaml
 repos:
   - repo: https://github.com/Diaoul/yamlsorter
-    rev: v0.1.0
+    rev: v0.2.0
     hooks:
       - id: yamlsorter
         args: [--config-dir, .yamlsorter]
 ```
 
-Put it before any YAML formatter: it rewrites key order, and the formatter has to
+Run it before any YAML formatter: it rewrites key order, and the formatter has to
 normalise the result.
 
 ## lefthook
 
-Run it before `yamlfmt`, sequentially — it rewrites key order and the formatter has to
-normalise the result.
+The same ordering rule applies, and `parallel = false` is what holds it.
 
 ```toml
 [pre-commit]
@@ -124,7 +124,7 @@ parallel = false
 
 [pre-commit.commands.sort-manifests]
 priority = 1
-run = "uvx yamlsorter@0.1.0 --config-dir .yamlsorter {staged_files}"
+run = "uvx yamlsorter@0.2.0 --config-dir .yamlsorter {staged_files}"
 glob = ["**/helmrelease.yaml", "**/kustomization.yaml", "**/ks.yaml"]
 stage_fixed = true
 ```
@@ -135,6 +135,7 @@ stage_fixed = true
 uv sync
 uv run pytest
 uv run ruff check
+uv run ruff format --check
 uv run mypy
 ```
 

@@ -20,7 +20,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - run: uv sync --locked --all-extras --dev
+      - run: uv sync --locked --dev
       - run: uv run ruff check --output-format=github
       - run: uv run ruff format --check
       - run: uv run mypy
@@ -37,5 +37,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: uv sync --locked --all-extras --dev
+      - run: uv sync --locked --dev
       - run: uv run pytest --cov --cov-report=term-missing --cov-fail-under=90

@@ -10,13 +10,14 @@ uv run ruff format
 uv run mypy
 ```
 
-CI runs exactly these, on Python 3.12, 3.13 and 3.14, plus a 90% coverage floor.
+CI runs the same checks — with `ruff format --check` in place of `ruff format` — on
+Python 3.12, 3.13 and 3.14, under a 90% coverage floor.
 
 ## Layout
 
 | Module | Holds |
 |---|---|
-| `constants.py` | shared literals — the template suffix, `*`, the path separator |
+| `constants.py` | shared literals — template suffixes, `*`, the path separator |
 | `models.py` | `YAMLValue`, `Outcome`, `Result`, `Stats` |
 | `errors.py` | `ConfigError`, `ParseError` |
 | `sections.py` | flat section paths and wildcard matching |
@@ -28,6 +29,7 @@ CI runs exactly these, on Python 3.12, 3.13 and 3.14, plus a 90% coverage floor.
 | `processor.py` | one file, end to end |
 | `tool.py` | one run, over many paths |
 | `cli.py` | argument parsing and logging setup |
+| `version.py` | the installed distribution's version |
 
 `__init__.py` re-exports the public surface and nothing else.
 

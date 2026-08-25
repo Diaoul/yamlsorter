@@ -30,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the command line parser."""
     parser = argparse.ArgumentParser(
         prog="yamlsorter",
-        description="Reorder keys in Flux manifests to match per-type templates.",
+        description="Reorder keys in Kubernetes and Flux manifests to match per-type templates.",
     )
     _ = parser.add_argument("paths", type=Path, nargs="+", help="files or directories to sort")
     _ = parser.add_argument(

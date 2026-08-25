@@ -7,8 +7,6 @@ from enum import Enum
 from pathlib import Path
 from typing import final
 
-from yamlsorter.constants import GENERIC
-
 type YAMLValue = str | int | float | bool | list["YAMLValue"] | dict[str, "YAMLValue"] | None
 
 
@@ -28,7 +26,7 @@ class Result:
 
     path: Path
     outcome: Outcome
-    file_type: str = GENERIC
+    file_type: str | None = None
     error: str | None = None
 
 

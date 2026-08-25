@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-24
+
 ### Fixed
 
 - Keys inherited through a `<<` merge are no longer materialised into the document.
@@ -33,7 +35,8 @@ All notable changes to this project are documented here. The format follows
 
 - Every `kind` now has a type — `HTTPRoute` is `httproute` — so any document can carry
   a template. `FileTypeDetector.detect` returns `None` for a document with no `kind`
-  rather than the `generic` sentinel. Documents with no matching template are still
+  rather than the `generic` sentinel, and the `GENERIC` constant is gone —
+  `Result.file_type` is `None` when no template applied. Documents with no template are still
   skipped rather than failing.
 - `--audit` names the template file a type resolved to, rather than assuming
   `<type>.yaml.tpl`.
@@ -48,5 +51,6 @@ All notable changes to this project are documented here. The format follows
 
 Initial release.
 
-[Unreleased]: https://github.com/Diaoul/yamlsorter/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Diaoul/yamlsorter/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Diaoul/yamlsorter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Diaoul/yamlsorter/releases/tag/v0.1.0

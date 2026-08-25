@@ -9,7 +9,7 @@ from typing import final
 from ruamel.yaml.comments import CommentedMap
 
 from yamlsorter.detect import FileTypeDetector
-from yamlsorter.document import LF, detached_comment, read_text, render, write_text, yaml_reader
+from yamlsorter.document import detached_comment, read_text, render, write_text, yaml_reader
 from yamlsorter.errors import ConfigError, ParseError
 from yamlsorter.models import Outcome, Result, YAMLValue
 from yamlsorter.sorter import KeySorter
@@ -76,6 +76,7 @@ class FileProcessor:
         if not sortable:
             return Result(path, Outcome.SKIPPED)
 
+        # A multi-document file is labelled by its first sortable document.
         file_type = sortable[0][1]
         try:
             for doc, kind in sortable:
@@ -99,7 +100,7 @@ class FileProcessor:
 
         if not self.dry_run:
             try:
-                write_text(path, rendered, parsed.newline or LF)
+                write_text(path, rendered, parsed.newline)
             except OSError as exc:
                 return Result(path, Outcome.FAILED, file_type, str(exc))
 
