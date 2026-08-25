@@ -1,11 +1,16 @@
 # yamlsorter
 
+[![ci](https://github.com/Diaoul/yamlsorter/actions/workflows/ci.yaml/badge.svg)](https://github.com/Diaoul/yamlsorter/actions/workflows/ci.yaml)
+[![PyPI](https://img.shields.io/pypi/v/yamlsorter)](https://pypi.org/project/yamlsorter/)
+[![Python](https://img.shields.io/pypi/pyversions/yamlsorter)](https://pypi.org/project/yamlsorter/)
+
 Reorder keys in Kubernetes and Flux manifests so diffs stay readable. Key order carries
 no meaning to Kubernetes, so it is free to standardise — and worth standardising,
 because an unordered `spec` makes every review hunt for the field it cares about.
 
-The desired order is declared by example: each template is a manifest skeleton whose
-**keys** define the order for its type. Values there are placeholders and are ignored.
+The desired order is declared by example: a template is a manifest whose **keys**
+define the order for its type — a skeleton kept in a config directory, or an ordinary
+manifest already in the repo. Values are ignored either way.
 
 ## Install
 
@@ -24,12 +29,23 @@ yamlsorter kubernetes --audit            # list keys no template covers
 yamlsorter kubernetes/apps/media/sonarr/app/helmrelease.yaml
 ```
 
-Templates are read from `.yamlsorter/` by default; override with `--config-dir`.
+Templates are read from `.yamlsorter/` by default; override with `--config-dir`, or
+point at any manifest with `--template`:
+
+```sh
+yamlsorter kubernetes --template kubernetes/apps/default/vaultwarden/app/helmrelease.yaml
+```
 
 Walking a directory picks up `helmrelease.yaml`, `kustomization.yaml` and `ks.yaml`
 (`--names` overrides). A file named explicitly is processed whatever it is called.
-Anything the templates do not cover — Secrets, HTTPRoutes, OCIRepositories — is
-skipped, not an error.
+A document whose type has no template — a Secret, an OCIRepository — is skipped, not
+an error.
+
+A rewrite never loses what a manifest carries: comments, anchors, `<<` merge keys,
+quoting, line endings and file permissions all survive. Keys inherited through a merge
+stay with their anchor rather than being copied in. Where a round-trip cannot preserve
+something — a comment sitting after a list dash, which ruamel re-anchors to the
+previous entry — the file is skipped with a reason instead of being rewritten.
 
 ## Templates
 
@@ -53,17 +69,54 @@ A HelmRelease resolves to `helmrelease-<chart>.yaml.tpl` (hyphens stripped) by
 A `"*"` key in a template stands for whatever name the manifest uses at that level, so
 one `controllers."*".containers."*"` entry orders every container in the repo.
 
-The `.tpl` suffix is load-bearing. A template is a well-formed Kustomization or
-HelmRelease, so under a plain `.yaml` name repo-wide Flux scanners render it as a real
-resource — Konflate reads `dependsOn: [{name: dependency}]` out of the placeholder and
-reports a dependency failure per app.
+### Any manifest can be a template
+
+Only a template's keys are read, so an ordinary manifest already in the repo is a
+valid template — there is nothing to keep in sync with a parallel skeleton.
+
+```sh
+yamlsorter kubernetes --template kubernetes/apps/default/vaultwarden/app/helmrelease.yaml
+yamlsorter kubernetes --template httproute=kubernetes/apps/default/echo/app/route.yaml
+```
+
+Without a `TYPE=` prefix the template registers for its own `kind`, so the first line
+orders every HelmRelease. `--template` is repeatable and beats the config directory.
+
+Any `kind` has a type: `HTTPRoute` is `httproute`, `OCIRepository` is `ocirepository`.
+Give one a template — by path, or as `<type>.yaml.tpl` in the config directory — and
+its documents get sorted; documents with no template are still skipped, not an error.
+Remember `--names` when walking a directory, since only `helmrelease.yaml`,
+`kustomization.yaml` and `ks.yaml` are picked up by default.
+
+Files in the config directory may be named `<type>.yaml.tpl`, `.yml.tpl`, `.yaml` or
+`.yml`; the `.tpl` forms win when both exist.
+
+The `.tpl` suffix is load-bearing **for skeletons**. A skeleton is a well-formed
+Kustomization or HelmRelease, so under a plain `.yaml` name repo-wide Flux scanners
+render it as a real resource — Konflate reads `dependsOn: [{name: dependency}]` out of
+the placeholder and reports a dependency failure per app. A template supplied with
+`--template` is exempt: it is a real manifest the repo already applies, so it has
+nothing to hide from.
 
 A working set for a Flux repo is in [`examples/templates/`](examples/templates).
 
+## pre-commit
+
+```yaml
+repos:
+  - repo: https://github.com/Diaoul/yamlsorter
+    rev: v0.2.0
+    hooks:
+      - id: yamlsorter
+        args: [--config-dir, .yamlsorter]
+```
+
+Run it before any YAML formatter: it rewrites key order, and the formatter has to
+normalise the result.
+
 ## lefthook
 
-Run it before `yamlfmt`, sequentially — it rewrites key order and the formatter has to
-normalise the result.
+The same ordering rule applies, and `parallel = false` is what holds it.
 
 ```toml
 [pre-commit]
@@ -71,7 +124,7 @@ parallel = false
 
 [pre-commit.commands.sort-manifests]
 priority = 1
-run = "uvx yamlsorter@0.1.0 --config-dir .yamlsorter {staged_files}"
+run = "uvx yamlsorter@0.2.0 --config-dir .yamlsorter {staged_files}"
 glob = ["**/helmrelease.yaml", "**/kustomization.yaml", "**/ks.yaml"]
 stage_fixed = true
 ```
@@ -82,8 +135,12 @@ stage_fixed = true
 uv sync
 uv run pytest
 uv run ruff check
+uv run ruff format --check
 uv run mypy
 ```
+
+The module layout and what a change is expected to carry are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

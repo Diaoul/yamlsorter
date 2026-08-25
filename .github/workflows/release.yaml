@@ -13,6 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Check the tag matches the packaged version
+        run: |
+          version=$(uv version --short)
+          tag=${GITHUB_REF_NAME#v}
+          if [ "$version" != "$tag" ]; then
+            echo "tag $tag does not match version $version in pyproject.toml" >&2
+            exit 1
+          fi
       - run: uv build
       - uses: actions/upload-artifact@v4
         with:
@@ -25,9 +35,14 @@ jobs:
     environment: pypi
     permissions:
       id-token: write        # PyPI trusted publishing; no API token needed
+      attestations: write    # build provenance for the uploaded artefacts
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/*
       - uses: pypa/gh-action-pypi-publish@release/v1

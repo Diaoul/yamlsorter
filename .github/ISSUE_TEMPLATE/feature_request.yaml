@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest a capability yamlsorter does not have
+labels: [feature]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that yamlsorter makes hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: Sketch
+      description: How it might look — flags, config, behaviour.

@@ -27,11 +27,14 @@ from yamlsorter import FileTypeDetector, Outcome, SortingTool, YAMLValue, main
             "kustomization",
         ),
         ({"kind": "Component", "apiVersion": "kustomize.config.k8s.io/v1alpha1"}, "component"),
-        ({"kind": "Secret"}, "generic"),
-        ({}, "generic"),
+        ({"kind": "Secret"}, "secret"),
+        ({"kind": "HTTPRoute"}, "httproute"),
+        ({"kind": "Secret", "apiVersion": "v1"}, "secret"),
+        ({}, None),
+        ({"kind": 3}, None),
     ],
 )
-def test_detect(doc: dict[str, YAMLValue], expected: str) -> None:
+def test_detect(doc: dict[str, YAMLValue], expected: str | None) -> None:
     assert FileTypeDetector.detect(doc) == expected
 
 
@@ -135,7 +138,7 @@ def test_cli_exit_code_on_check(tmp_path: Path, config_dir: Path) -> None:
 
 
 def test_comment_after_a_list_dash_blocks_the_rewrite(tmp_path: Path, config_dir: Path) -> None:
-    """ruamel reattaches such a comment to the previous entry, so refuse to rewrite."""
+    """Ruamel reattaches such a comment to the previous entry, so refuse to rewrite."""
     body = (
         "---\n"
         "apiVersion: kustomize.toolkit.fluxcd.io/v1\n"

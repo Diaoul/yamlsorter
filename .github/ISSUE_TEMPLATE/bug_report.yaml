@@ -1,0 +1,32 @@
+name: Bug report
+description: A manifest was sorted wrongly, skipped, or failed
+labels: [bug]
+body:
+  - type: textarea
+    id: manifest
+    attributes:
+      label: Manifest
+      description: The smallest input that reproduces it.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: template
+    attributes:
+      label: Template
+      description: The matching file from your config directory.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: What happened, and what you expected instead
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: yamlsorter --version
+    validations:
+      required: true

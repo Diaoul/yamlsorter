@@ -5,7 +5,26 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked --dev
+      - run: uv run ruff check --output-format=github
+      - run: uv run ruff format --check
+      - run: uv run mypy
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -18,8 +37,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: uv sync --locked --all-extras --dev
-      - run: uv run ruff check
-      - run: uv run ruff format --check
-      - run: uv run mypy
-      - run: uv run pytest
+      - run: uv sync --locked --dev
+      - run: uv run pytest --cov --cov-report=term-missing --cov-fail-under=90
