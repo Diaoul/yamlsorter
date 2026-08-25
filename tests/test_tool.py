@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from fixtures import KS, SECRET
-from yamlsorter import Outcome, Result, SortingTool, Stats
-from yamlsorter.tool import EXIT_ERROR, EXIT_UNSORTED
+from yamlsorter import DEFAULT_NAMES, Outcome, Result, SortingTool, Stats
+from yamlsorter.tool import EXIT_ERROR
 
 
 def test_no_matching_files_is_not_a_failure(
@@ -40,8 +40,9 @@ def test_default_names_are_used_when_none_are_given(tmp_path: Path, config_dir: 
     _ = (tmp_path / "ks.yaml").write_text(KS, encoding="utf-8")
     _ = (tmp_path / "other.yaml").write_text(KS, encoding="utf-8")
 
-    assert SortingTool(config_dir, dry_run=True).run([tmp_path]) == EXIT_UNSORTED
-    assert (tmp_path / "other.yaml").read_text(encoding="utf-8") == KS
+    collected = list(SortingTool(config_dir)._collect([tmp_path], DEFAULT_NAMES))
+
+    assert collected == [tmp_path / "ks.yaml"]
 
 
 def test_audit_reports_missing_keys(

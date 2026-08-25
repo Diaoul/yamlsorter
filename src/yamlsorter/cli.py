@@ -18,12 +18,19 @@ def template_spec(value: str) -> TemplateSpec:
     """Parse `--template PATH` or `--template TYPE=PATH`.
 
     A leading `TYPE=` is only read as one when it could not be part of a path, so
-    `--template ./some=dir/helmrelease.yaml` still means a path.
+    `--template ./some=dir/helmrelease.yaml` still means a path. The type is
+    lowercased to match what the detector produces, so `HTTPRoute=` and `httproute=`
+    name the same type; hyphens stay, since `flux-kustomization` is one.
     """
     name, separator, rest = value.partition("=")
     if separator and name and "/" not in name and os.sep not in name:
-        return name, Path(rest)
+        return name.strip().lower(), Path(rest)
     return None, Path(value)
+
+
+def names(value: str) -> list[str]:
+    """Parse one `--names` value, which may list several names with commas."""
+    return [name for name in value.split(",") if name]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,10 +65,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _ = parser.add_argument(
         "--names",
-        nargs="+",
-        default=list(DEFAULT_NAMES),
-        metavar="NAME",
-        help="filenames to pick up when walking directories (default: %(default)s)",
+        type=names,
+        action="append",
+        default=[],
+        metavar="NAME[,NAME...]",
+        help=(
+            "filename to pick up when walking directories; repeatable, or "
+            f"comma-separated (default: {','.join(DEFAULT_NAMES)})"
+        ),
     )
     _ = parser.add_argument(
         "--audit",
@@ -83,10 +94,14 @@ def main(argv: list[str] | None = None) -> int:
         stream=sys.stderr,
     )
 
+    # `nargs="+"` here would swallow the positional paths, which is the shape
+    # pre-commit and lefthook produce: flags first, then the file list.
+    wanted = [name for group in args.names for name in group] or list(DEFAULT_NAMES)
+
     tool = SortingTool(
         config_dir=args.config_dir,
         templates=args.template,
         dry_run=args.check,
         markers=DEFAULT_MARKERS,
     )
-    return tool.run(args.paths, args.names, audit=args.audit)
+    return tool.run(args.paths, wanted, audit=args.audit)

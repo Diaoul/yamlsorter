@@ -82,7 +82,8 @@ class ConfigManager:
         """Use `path` as the template for a type, detecting the type if not given."""
         resolved = file_type or self.type_of(path)
         self._registered[resolved] = path
-        _ = self._orders.pop(resolved, None)
+        # Other types may have cached orders through this one as a fallback.
+        self._orders.clear()
         return resolved
 
     def type_of(self, path: Path) -> str:

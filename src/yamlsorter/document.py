@@ -41,6 +41,34 @@ def own_items(node: dict[str, YAMLValue]) -> list[tuple[str, YAMLValue]]:
     return list(node.items())
 
 
+def key_signature(node: YAMLValue) -> object:
+    """A document's key order, as nested tuples, ignoring values.
+
+    Two documents with the same signature differ only in formatting, so a rewrite
+    between them would reflow the file without reordering anything.
+    """
+    if isinstance(node, dict):
+        return tuple((key, key_signature(value)) for key, value in own_items(node))
+    if isinstance(node, list):
+        return tuple(key_signature(item) for item in node)
+    return None
+
+
+def explicit_start(text: str) -> bool:
+    """True when the document stream opens with a `---`, comments aside."""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        return stripped == "---" or stripped.startswith("--- ")
+    return False
+
+
+def explicit_end(text: str) -> bool:
+    """True when the document stream carries a `...` terminator."""
+    return any(line.strip() == "..." for line in text.splitlines())
+
+
 def read_text(path: Path) -> tuple[str, str]:
     """Return the file's text with LF endings, plus the ending it actually used.
 
@@ -49,7 +77,9 @@ def read_text(path: Path) -> tuple[str, str]:
     """
     with path.open(encoding="utf-8", newline="") as handle:
         raw = handle.read()
-    newline = CRLF if CRLF in raw else LF
+    # A file with mixed endings has to pick one; the majority keeps the diff small.
+    crlf = raw.count(CRLF)
+    newline = CRLF if crlf > raw.count(LF) - crlf else LF
     return raw.replace(CRLF, LF), newline
 
 
@@ -80,16 +110,20 @@ def write_text(path: Path, content: str, newline: str = LF) -> None:
         raise
 
 
-def render(yaml: YAML, docs: list[YAMLValue], *, explicit_start: bool) -> str:
-    """Serialise a document stream, keeping empty documents empty."""
+def render(yaml: YAML, docs: list[YAMLValue], *, start: bool, end: bool) -> str:
+    """Serialise a document stream, keeping its markers and its empty documents."""
     buffer = io.StringIO()
-    for index, doc in enumerate(docs):
-        if index > 0 or explicit_start:
-            _ = buffer.write("---\n")
-        # An empty document has no body: dumping `None` would write a literal `null`.
-        if doc is None:
-            continue
-        yaml.dump(doc, buffer)
+    yaml.explicit_end = end  # pyright: ignore[reportAttributeAccessIssue]
+    try:
+        for index, doc in enumerate(docs):
+            if index > 0 or start:
+                _ = buffer.write("---\n")
+            # An empty document has no body: dumping `None` writes a literal `null`.
+            if doc is None:
+                continue
+            yaml.dump(doc, buffer)
+    finally:
+        yaml.explicit_end = False  # pyright: ignore[reportAttributeAccessIssue]
     return buffer.getvalue()
 
 
@@ -107,21 +141,26 @@ def _comment_anchors(text: str) -> Iterator[tuple[str, str]]:
         yield line, following
 
 
-def detached_comment(original: str, rendered: str) -> str | None:
-    """Name a comment the round-trip re-anchored, if any.
+def comment_damage(original: str, rendered: str) -> str | None:
+    """Describe what the round-trip would do to a comment, if anything.
 
-    ruamel cannot faithfully re-emit a comment that sits after a list dash
-    (`- # note`): it reattaches to the preceding entry, so the note ends up
-    describing the wrong item. Rewriting such a file would silently mislead.
+    ruamel cannot faithfully re-emit every comment: one sitting after a list dash
+    (`- # note`) reattaches to the preceding entry, so the note ends up describing
+    the wrong item, and one above the opening `---` is dropped outright. Rewriting
+    such a file would silently mislead, so the caller skips it instead.
     """
     before = list(_comment_anchors(original))
     after = list(_comment_anchors(rendered))
 
-    if len(before) != len(after):
-        return "a comment"
+    if len(before) > len(after):
+        return "would drop a comment"
+    if len(before) < len(after):
+        # A comment that shared a line (`- # note`) now stands on one of its own,
+        # which is exactly the re-anchoring that changes what it documents.
+        return "would re-anchor a comment"
 
-    for (comment, was), (_, now) in zip(before, after, strict=True):
-        if was != now:
-            return repr(comment)
+    for (comment, was), (rendered_comment, now) in zip(before, after, strict=True):
+        if comment != rendered_comment or was != now:
+            return f"would move {comment!r} away from what it documents"
 
     return None
