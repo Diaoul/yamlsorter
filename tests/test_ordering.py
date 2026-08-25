@@ -47,9 +47,9 @@ def test_schema_comment_and_document_start_survive(tmp_path: Path, config_dir: P
     target = tmp_path / "ks.yaml"
     _ = target.write_text(KS, encoding="utf-8")
 
-    _ = sort_file(target, config_dir)
-    text = target.read_text(encoding="utf-8")
+    assert sort_file(target, config_dir) is Outcome.CHANGED
 
+    text = target.read_text(encoding="utf-8")
     assert text.startswith("---\n# yaml-language-server: $schema=")
 
 
@@ -127,7 +127,7 @@ def test_anchors_and_aliases_survive(tmp_path: Path, config_dir: Path) -> None:
         "spec:\n"
         "  values:\n"
         "    controllers:\n"
-        "      *app: {}\n"
+        "      *app : {}\n"  # an alias key needs the space; `*app:` is an alias named "app:"
         "  interval: 30m\n"
         "  chartRef:\n"
         "    kind: OCIRepository\n"
@@ -135,9 +135,9 @@ def test_anchors_and_aliases_survive(tmp_path: Path, config_dir: Path) -> None:
         encoding="utf-8",
     )
 
-    _ = sort_file(target, config_dir)
-    text = target.read_text(encoding="utf-8")
+    assert sort_file(target, config_dir) is Outcome.CHANGED
 
+    text = target.read_text(encoding="utf-8")
     assert "&app" in text
     assert "*app" in text
 
@@ -149,7 +149,7 @@ def test_quoted_scalars_keep_their_quotes(tmp_path: Path, config_dir: Path) -> N
         encoding="utf-8",
     )
 
-    _ = sort_file(target, config_dir)
+    assert sort_file(target, config_dir) is Outcome.CHANGED
 
     assert 'quoted: "1"' in target.read_text(encoding="utf-8")
 
@@ -159,7 +159,7 @@ def test_file_permissions_are_preserved(tmp_path: Path, config_dir: Path) -> Non
     _ = target.write_text(KS, encoding="utf-8")
     target.chmod(0o640)
 
-    _ = sort_file(target, config_dir)
+    assert sort_file(target, config_dir) is Outcome.CHANGED
 
     assert target.stat().st_mode & 0o777 == 0o640
 
@@ -171,5 +171,5 @@ def test_multi_document_file_sorts_every_document(tmp_path: Path, config_dir: Pa
     assert sort_file(target, config_dir) is Outcome.CHANGED
 
     text = target.read_text(encoding="utf-8")
-    assert text.count("---") == 2
+    assert text.count("\n---\n") + text.startswith("---\n") == 2
     assert text.count("sourceRef") == 2

@@ -39,9 +39,15 @@ class FileTypeDetector:
         """Reduce a `kind` to the name its template file carries."""
         return "".join(char for char in kind if char.isalnum()).lower()
 
-    @staticmethod
-    def _chart_name(data: dict[str, YAMLValue]) -> str | None:
-        """Chart backing a HelmRelease, via chartRef (this repo) or inline chart."""
+    @classmethod
+    def _chart_name(cls, data: dict[str, YAMLValue]) -> str | None:
+        """Chart backing a HelmRelease, via chartRef (this repo) or inline chart.
+
+        The name reaches the filesystem as `helmrelease-<chart>.yaml.tpl`, so it goes
+        through the same slug as any other kind: a chart called `App-Template` resolves
+        to the template `app-template` does, and a name carrying `/` or `..` cannot
+        point the lookup at a path of its own choosing.
+        """
         spec = data.get("spec")
         if not isinstance(spec, dict):
             return None
@@ -50,7 +56,7 @@ class FileTypeDetector:
         if isinstance(chart_ref, dict):
             name = chart_ref.get("name")
             if isinstance(name, str):
-                return name.replace("-", "")
+                return cls.slug(name) or None
 
         chart = spec.get("chart")
         if isinstance(chart, dict):
@@ -58,6 +64,6 @@ class FileTypeDetector:
             if isinstance(chart_spec, dict):
                 name = chart_spec.get("chart")
                 if isinstance(name, str):
-                    return name.replace("-", "")
+                    return cls.slug(name) or None
 
         return None

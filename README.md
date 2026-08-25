@@ -36,8 +36,10 @@ point at any manifest with `--template`:
 yamlsorter kubernetes --template kubernetes/apps/default/vaultwarden/app/helmrelease.yaml
 ```
 
-Walking a directory picks up `helmrelease.yaml`, `kustomization.yaml` and `ks.yaml`
-(`--names` overrides). A file named explicitly is processed whatever it is called.
+Walking a directory picks up `helmrelease.yaml`, `kustomization.yaml` and `ks.yaml`.
+`--names` overrides that, repeated or comma-separated —
+`--names ks.yaml --names route.yaml`, or `--names ks.yaml,route.yaml`. A file named
+explicitly is processed whatever it is called.
 A document whose type has no template — a Secret, an OCIRepository — is skipped, not
 an error.
 
@@ -45,7 +47,8 @@ A rewrite never loses what a manifest carries: comments, anchors, `<<` merge key
 quoting, line endings and file permissions all survive. Keys inherited through a merge
 stay with their anchor rather than being copied in. Where a round-trip cannot preserve
 something — a comment sitting after a list dash, which ruamel re-anchors to the
-previous entry — the file is skipped with a reason instead of being rewritten.
+previous entry, or one above the opening `---`, which it drops — the file is skipped
+with a reason instead of being rewritten.
 
 ## Templates
 
@@ -85,8 +88,8 @@ orders every HelmRelease. `--template` is repeatable and beats the config direct
 Any `kind` has a type: `HTTPRoute` is `httproute`, `OCIRepository` is `ocirepository`.
 Give one a template — by path, or as `<type>.yaml.tpl` in the config directory — and
 its documents get sorted; documents with no template are still skipped, not an error.
-Remember `--names` when walking a directory, since only `helmrelease.yaml`,
-`kustomization.yaml` and `ks.yaml` are picked up by default.
+Remember `--names route.yaml` when walking a directory, since only
+`helmrelease.yaml`, `kustomization.yaml` and `ks.yaml` are picked up by default.
 
 Files in the config directory may be named `<type>.yaml.tpl`, `.yml.tpl`, `.yaml` or
 `.yml`; the `.tpl` forms win when both exist.

@@ -163,7 +163,7 @@ def test_comment_after_a_list_dash_blocks_the_rewrite(tmp_path: Path, config_dir
 
     assert result.outcome is Outcome.SKIPPED
     assert result.error is not None
-    assert "documents" in result.error
+    assert result.error == "round-trip would re-anchor a comment"
     assert target.read_text(encoding="utf-8") == body
 
 

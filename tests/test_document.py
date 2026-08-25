@@ -42,7 +42,7 @@ def test_merge_key_document_still_sorts_its_own_keys(
     target = tmp_path / "ks.yaml"
     _ = target.write_text(MERGE, encoding="utf-8")
 
-    _ = SortingTool(config_dir).processor.process(target)
+    assert SortingTool(config_dir).processor.process(target).outcome is Outcome.CHANGED
 
     doc = yaml.load(target.read_text(encoding="utf-8"))
     own = [key for key, _ in own_items(doc["spec"])]
@@ -54,7 +54,7 @@ def test_empty_trailing_document_stays_empty(tmp_path: Path, config_dir: Path) -
     target = tmp_path / "ks.yaml"
     _ = target.write_text(KS + "---\n", encoding="utf-8")
 
-    _ = SortingTool(config_dir).processor.process(target)
+    assert SortingTool(config_dir).processor.process(target).outcome is Outcome.CHANGED
 
     text = target.read_text(encoding="utf-8")
     assert "null" not in text
@@ -76,7 +76,7 @@ def test_lf_files_do_not_gain_carriage_returns(tmp_path: Path, config_dir: Path)
     target = tmp_path / "ks.yaml"
     _ = target.write_text(KS, encoding="utf-8")
 
-    _ = SortingTool(config_dir).processor.process(target)
+    assert SortingTool(config_dir).processor.process(target).outcome is Outcome.CHANGED
 
     assert b"\r" not in target.read_bytes()
 
@@ -88,7 +88,7 @@ def test_symlinked_manifest_is_written_through(tmp_path: Path, config_dir: Path)
     link = tmp_path / "ks.yaml"
     link.symlink_to(real)
 
-    _ = SortingTool(config_dir).processor.process(link)
+    assert SortingTool(config_dir).processor.process(link).outcome is Outcome.CHANGED
 
     assert link.is_symlink()
     assert "path: ./kubernetes" in real.read_text(encoding="utf-8")

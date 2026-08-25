@@ -9,7 +9,16 @@ from typing import final
 from ruamel.yaml.comments import CommentedMap
 
 from yamlsorter.detect import FileTypeDetector
-from yamlsorter.document import detached_comment, read_text, render, write_text, yaml_reader
+from yamlsorter.document import (
+    comment_damage,
+    explicit_end,
+    explicit_start,
+    key_signature,
+    read_text,
+    render,
+    write_text,
+    yaml_reader,
+)
 from yamlsorter.errors import ConfigError, ParseError
 from yamlsorter.models import Outcome, Result, YAMLValue
 from yamlsorter.sorter import KeySorter
@@ -68,35 +77,41 @@ class FileProcessor:
         """Sort an already parsed file, rewriting it unless this is a dry run."""
         path = parsed.path
         typed = [(doc, FileTypeDetector.detect(doc)) for doc in parsed.mappings]
-        sortable = [
-            (doc, kind)
-            for doc, kind in typed
-            if kind is not None and self.config.has_template(kind)
-        ]
-        if not sortable:
-            return Result(path, Outcome.SKIPPED)
-
         # A multi-document file is labelled by its first sortable document.
-        file_type = sortable[0][1]
+        file_type: str | None = None
         try:
+            sortable = [
+                (doc, kind)
+                for doc, kind in typed
+                if kind is not None and self.config.has_template(kind)
+            ]
+            if not sortable:
+                return Result(path, Outcome.SKIPPED)
+
+            file_type = sortable[0][1]
+            before = [key_signature(doc) for doc, _ in sortable]
             for doc, kind in sortable:
                 _ = self.sorter.sort_document(doc, self.config.load(kind))
         except ConfigError as exc:
             return Result(path, Outcome.FAILED, file_type, str(exc))
 
-        explicit_start = parsed.text.lstrip().startswith("---")
-        rendered = render(self._yaml, parsed.docs, explicit_start=explicit_start)
+        # Nothing moved: the file's key order is already the template's, whatever the
+        # rest of its formatting looks like. Rewriting it would only reflow the file.
+        if before == [key_signature(doc) for doc, _ in sortable]:
+            return Result(path, Outcome.UNCHANGED, file_type)
+
+        rendered = render(
+            self._yaml,
+            parsed.docs,
+            start=explicit_start(parsed.text),
+            end=explicit_end(parsed.text),
+        )
         if rendered.strip() == parsed.text.strip():
             return Result(path, Outcome.UNCHANGED, file_type)
 
-        moved = detached_comment(parsed.text, rendered)
-        if moved:
-            return Result(
-                path,
-                Outcome.SKIPPED,
-                file_type,
-                f"round-trip would move {moved} away from what it documents",
-            )
+        damage = comment_damage(parsed.text, rendered)
+        if damage:
+            return Result(path, Outcome.SKIPPED, file_type, f"round-trip {damage}")
 
         if not self.dry_run:
             try:

@@ -9,6 +9,7 @@ from ruamel.yaml.comments import CommentedMap
 
 from yamlsorter.constants import WILDCARD
 from yamlsorter.detect import FileTypeDetector
+from yamlsorter.document import own_items
 from yamlsorter.errors import ConfigError
 from yamlsorter.models import Stats, YAMLValue
 from yamlsorter.sections import matches
@@ -67,7 +68,7 @@ class MissingKeyAuditor:
     ) -> set[str]:
         found: set[str] = set()
 
-        for key, value in node.items():
+        for key, value in own_items(node):
             child = [*path, key]
 
             if skip_values and child[:2] == ["spec", "values"]:
